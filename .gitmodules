@@ -1,0 +1,3 @@
+[submodule "extern/base"]
+	path = extern/base
+	url = git@github.com:neuralnet-cpp-dev/base.neuralnet.cpp.git
