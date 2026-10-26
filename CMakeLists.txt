@@ -25,3 +25,19 @@ target_include_directories(neuralnet_kvrecord INTERFACE
     $<INSTALL_INTERFACE:include>)
 target_link_libraries(neuralnet_kvrecord INTERFACE neuralnet::base)
 target_compile_features(neuralnet_kvrecord INTERFACE cxx_std_23)
+
+# ── 测试（NN_BUILD_TESTS；顶层工程默认 ON，被 add_subdirectory 消费时默认 OFF）──
+# 独立开发/CI：cmake -B build && cmake --build build && ctest --test-dir build
+option(NN_BUILD_TESTS "Build kvrecord.neuralnet.cpp tests" ${PROJECT_IS_TOP_LEVEL})
+if(NN_BUILD_TESTS)
+    enable_testing()
+    if(MSVC)
+        add_compile_options(/W4 /permissive- /Zc:preprocessor /utf-8)
+    else()
+        add_compile_options(-fno-exceptions -Wall -Wextra -Wpedantic -Werror)
+    endif()
+
+    add_executable(kvrecord_kvrec_test tests/kvrec_test.cpp)
+    target_link_libraries(kvrecord_kvrec_test PRIVATE neuralnet::kvrecord)
+    add_test(NAME kvrecord_kvrec_test COMMAND kvrecord_kvrec_test)
+endif()
