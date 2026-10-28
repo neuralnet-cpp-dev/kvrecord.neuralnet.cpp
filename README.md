@@ -74,3 +74,20 @@ ctest --test-dir build --output-on-failure
 是否顶层工程）；显式 `-DNN_BUILD_TESTS=ON` 可在嵌入时强制打开。
 
 许可证：LGPL-3.0（见 [LICENSE](LICENSE)）。
+
+## 格式规范与 Python 参考实现
+
+- **字节级规范**：[docs/kvrec-format-spec.md](docs/kvrec-format-spec.md)（v1/v2 布局、
+  addr 连续性、版本自举）。v2 起格式**稳定**，演进只经新增版本哨兵值。
+- **Python 参考实现**：[python/kvrecord.py](python/kvrecord.py)（单文件、仅标准库）——
+  纯 Python 数据管线可原生读写 `.nnvocab` / `.nndataset` 等容器，无需 subprocess 桥接 C++ CLI。
+  合规口径：`dumps_v2()` 与 C++ `serialize_v2()` **逐字节一致**（对 `bpe_vocab_stories.nnvocab`
+  等真实产物往返验证通过）。
+
+```python
+import sys; sys.path.insert(0, "python")
+from kvrecord import KVRecord
+r = KVRecord.load("bpe_vocab_stories.nnvocab")   # 嗅探 NNVC 容器 / 裸 kvrec
+vocab = r.get_bytes("vocab")                     # 原始字节（非 UTF-8 安全）
+r.set_u64("added", 1).save("out.nnvocab")        # 重写仍是逐字节兼容的 v2
+```
