@@ -62,7 +62,7 @@ namespace detail
 
 // ── 小端编码/解码工具 ──────────────────────────────────────────────
 
-inline void append_u32(std::string &out, uint32_t v)
+inline void append_u32(std::string& out, uint32_t v)
 {
     out.push_back(static_cast<char>(v & 0xFF));
     out.push_back(static_cast<char>((v >> 8) & 0xFF));
@@ -70,24 +70,24 @@ inline void append_u32(std::string &out, uint32_t v)
     out.push_back(static_cast<char>((v >> 24) & 0xFF));
 }
 
-inline void append_u64(std::string &out, uint64_t v)
+inline void append_u64(std::string& out, uint64_t v)
 {
     for (int i = 0; i < 8; ++i)
         out.push_back(static_cast<char>((v >> (8 * i)) & 0xFF));
 }
 
-inline bool take_u32(std::string_view &s, uint32_t &out)
+inline bool take_u32(std::string_view& s, uint32_t& out)
 {
     if (s.size() < 4) return false;
-    out = static_cast<uint32_t>(static_cast<unsigned char>(s[0]))
-        | (static_cast<uint32_t>(static_cast<unsigned char>(s[1])) << 8)
-        | (static_cast<uint32_t>(static_cast<unsigned char>(s[2])) << 16)
-        | (static_cast<uint32_t>(static_cast<unsigned char>(s[3])) << 24);
+    out = static_cast<uint32_t>(static_cast<unsigned char>(s[0])) |
+          (static_cast<uint32_t>(static_cast<unsigned char>(s[1])) << 8) |
+          (static_cast<uint32_t>(static_cast<unsigned char>(s[2])) << 16) |
+          (static_cast<uint32_t>(static_cast<unsigned char>(s[3])) << 24);
     s.remove_prefix(4);
     return true;
 }
 
-inline bool take_u64(std::string_view &s, uint64_t &out)
+inline bool take_u64(std::string_view& s, uint64_t& out)
 {
     if (s.size() < 8) return false;
     out = 0;
@@ -103,7 +103,7 @@ using KvReadAt = std::function<Result<std::string>(std::uint64_t addr, std::uint
 
 struct KvCursor
 {
-    const KvReadAt *read = nullptr;
+    const KvReadAt* read = nullptr;
     std::uint64_t pos = 0;
 
     [[nodiscard]] Result<std::string> take(std::uint64_t n)
@@ -118,8 +118,7 @@ struct KvCursor
         NN_TRY(b, take(4));
         std::string_view sv = *b;
         std::uint32_t v = 0;
-        if (!::nn::detail::take_u32(sv, v))
-            NN_FAIL("KeyValueRecord::parse: u32 解码失败");
+        if (!::nn::detail::take_u32(sv, v)) NN_FAIL("KeyValueRecord::parse: u32 解码失败");
         return v;
     }
 
@@ -128,8 +127,7 @@ struct KvCursor
         NN_TRY(b, take(8));
         std::string_view sv = *b;
         std::uint64_t v = 0;
-        if (!::nn::detail::take_u64(sv, v))
-            NN_FAIL("KeyValueRecord::parse: u64 解码失败");
+        if (!::nn::detail::take_u64(sv, v)) NN_FAIL("KeyValueRecord::parse: u64 解码失败");
         return v;
     }
 
@@ -149,11 +147,10 @@ inline detail::KvReadAt kvrec_memory_source(std::string_view bytes)
     return [bytes](std::uint64_t addr, std::uint64_t len) -> Result<std::string>
     {
         if (addr > bytes.size() || len > bytes.size() - addr)
-            NN_FAIL("KeyValueRecord::parse: 读取越界（addr=" + std::to_string(addr)
-                + ", len=" + std::to_string(len)
-                + ", size=" + std::to_string(bytes.size()) + "）");
-        return std::string(bytes.substr(static_cast<std::size_t>(addr),
-                                        static_cast<std::size_t>(len)));
+            NN_FAIL("KeyValueRecord::parse: 读取越界（addr=" + std::to_string(addr) + ", len=" +
+                    std::to_string(len) + ", size=" + std::to_string(bytes.size()) + "）");
+        return std::string(
+            bytes.substr(static_cast<std::size_t>(addr), static_cast<std::size_t>(len)));
     };
 }
 
@@ -162,10 +159,10 @@ class KeyValueRecord
 public:
     enum class Type : uint8_t
     {
-        UInt      = 0,  // uint64_t
-        Str       = 1,  // std::string
+        UInt = 0,  // uint64_t
+        Str = 1,  // std::string
         UIntArray = 2,  // std::vector<uint64_t>
-        Record    = 3,  // 嵌套 KeyValueRecord（仅 v2；value = 完整嵌套 v2 kvrec 字节）
+        Record = 3,  // 嵌套 KeyValueRecord（仅 v2；value = 完整嵌套 v2 kvrec 字节）
     };
 
     // v2 版本哨兵（field[0]，v1 内联布局编码）的保留键名与版本值
@@ -177,10 +174,10 @@ public:
 
     // ── 写入 ────────────────────────────────────────────────────
     // ⚠ "kvrec_version" 为 v2 保留键名，业务字段不得使用。
-    KeyValueRecord &set(const std::string &key, uint64_t v);
-    KeyValueRecord &set(const std::string &key, const std::string &v);
-    KeyValueRecord &set(const std::string &key, const std::vector<uint64_t> &v);
-    KeyValueRecord &set(const std::string &key, const KeyValueRecord &v);
+    KeyValueRecord& set(const std::string& key, uint64_t v);
+    KeyValueRecord& set(const std::string& key, const std::string& v);
+    KeyValueRecord& set(const std::string& key, const std::vector<uint64_t>& v);
+    KeyValueRecord& set(const std::string& key, const KeyValueRecord& v);
 
     // v1 序列化（模型 spec 头继续用；Record 字段 v1 不支持，跳过不写）
     [[nodiscard]] std::string serialize() const;
@@ -194,15 +191,14 @@ public:
     // bytes 视为完整文件映像，v2 地址相对 bytes 起点。
     [[nodiscard]] static Result<KeyValueRecord> parse(std::string_view bytes);
     // 同上，但字节经 ReadAt 按绝对偏移取（大文件/流式场景）。
-    [[nodiscard]] static Result<KeyValueRecord> parse_at(const ReadAt &read,
-                                                         std::uint64_t offset);
+    [[nodiscard]] static Result<KeyValueRecord> parse_at(const ReadAt& read, std::uint64_t offset);
 
     // ── 读取（返回 false 表示缺失或类型不符） ──────────────────
-    [[nodiscard]] bool has(const std::string &key) const;
-    [[nodiscard]] bool get(const std::string &key, uint64_t &out) const;
-    [[nodiscard]] bool get(const std::string &key, std::string &out) const;
-    [[nodiscard]] bool get(const std::string &key, std::vector<uint64_t> &out) const;
-    [[nodiscard]] bool get(const std::string &key, KeyValueRecord &out) const;
+    [[nodiscard]] bool has(const std::string& key) const;
+    [[nodiscard]] bool get(const std::string& key, uint64_t& out) const;
+    [[nodiscard]] bool get(const std::string& key, std::string& out) const;
+    [[nodiscard]] bool get(const std::string& key, std::vector<uint64_t>& out) const;
+    [[nodiscard]] bool get(const std::string& key, KeyValueRecord& out) const;
 
 private:
     struct Field
@@ -230,54 +226,52 @@ private:
     }
 
     // 返回首个 key+type 匹配的字段；缺失或类型不符返回 nullptr
-    [[nodiscard]] const Field *find_field_(const std::string &key, Type type) const
+    [[nodiscard]] const Field* find_field_(const std::string& key, Type type) const
     {
         const auto it = key_index_.find(key);
         if (it == key_index_.end()) return nullptr;
         // 首个出现处类型即匹配时 O(1)；否则（重复键 + 类型错位）前向兜底扫描
         for (std::size_t i = it->second; i < fields_.size(); ++i)
-            if (fields_[i].key == key && fields_[i].type == type)
-                return &fields_[i];
+            if (fields_[i].key == key && fields_[i].type == type) return &fields_[i];
         return nullptr;
     }
 
     // v2 内部构件
     static constexpr std::uint64_t SENTINEL_INLINE_SIZE = 4 + 13 + 1 + 4 + 8;
-    [[nodiscard]] static std::uint64_t value_size_(const Field &f);
-    [[nodiscard]] static std::uint64_t fields_blob_size_(const std::vector<Field> &fs);
-    static void serialize_fields_v2_(const std::vector<Field> &fs,
-                                     std::uint64_t base_offset, std::string &out);
+    [[nodiscard]] static std::uint64_t value_size_(const Field& f);
+    [[nodiscard]] static std::uint64_t fields_blob_size_(const std::vector<Field>& fs);
+    static void serialize_fields_v2_(const std::vector<Field>& fs, std::uint64_t base_offset,
+                                     std::string& out);
     [[nodiscard]] static Result<std::vector<KeyValueRecord::Field>>
-        parse_fields_v2_(const ReadAt &read, std::uint64_t offset,
-                         std::uint32_t total_count);
+    parse_fields_v2_(const ReadAt& read, std::uint64_t offset, std::uint32_t total_count);
 };
 
 // ══════════════════════════════════════════════════════════════════════════
 // 实现
 // ══════════════════════════════════════════════════════════════════════════
 
-inline KeyValueRecord &KeyValueRecord::set(const std::string &key, uint64_t v)
+inline KeyValueRecord& KeyValueRecord::set(const std::string& key, uint64_t v)
 {
     key_index_.emplace(key, fields_.size());  // emplace 保留首个出现下标
     fields_.push_back(Field{key, Type::UInt, v, {}, {}, {}});
     return *this;
 }
 
-inline KeyValueRecord &KeyValueRecord::set(const std::string &key, const std::string &v)
+inline KeyValueRecord& KeyValueRecord::set(const std::string& key, const std::string& v)
 {
     key_index_.emplace(key, fields_.size());  // emplace 保留首个出现下标
     fields_.push_back(Field{key, Type::Str, 0, v, {}, {}});
     return *this;
 }
 
-inline KeyValueRecord &KeyValueRecord::set(const std::string &key, const std::vector<uint64_t> &v)
+inline KeyValueRecord& KeyValueRecord::set(const std::string& key, const std::vector<uint64_t>& v)
 {
     key_index_.emplace(key, fields_.size());  // emplace 保留首个出现下标
     fields_.push_back(Field{key, Type::UIntArray, 0, {}, v, {}});
     return *this;
 }
 
-inline KeyValueRecord &KeyValueRecord::set(const std::string &key, const KeyValueRecord &v)
+inline KeyValueRecord& KeyValueRecord::set(const std::string& key, const KeyValueRecord& v)
 {
     key_index_.emplace(key, fields_.size());  // emplace 保留首个出现下标
     fields_.push_back(Field{key, Type::Record, 0, {}, {}, v.fields_});
@@ -289,10 +283,10 @@ inline std::string KeyValueRecord::serialize() const
     std::string out;
     // v1 无嵌套概念：Record 字段跳过不写（count 随之修正）
     std::uint32_t count = 0;
-    for (const auto &f : fields_)
+    for (const auto& f : fields_)
         if (f.type != Type::Record) ++count;
     detail::append_u32(out, count);
-    for (const auto &f : fields_)
+    for (const auto& f : fields_)
     {
         if (f.type == Type::Record) continue;
         detail::append_u32(out, static_cast<uint32_t>(f.key.size()));
@@ -320,35 +314,38 @@ inline std::string KeyValueRecord::serialize() const
     return out;
 }
 
-inline std::uint64_t KeyValueRecord::value_size_(const Field &f)
+inline std::uint64_t KeyValueRecord::value_size_(const Field& f)
 {
     switch (f.type)
     {
-    case Type::UInt:      return 8;
-    case Type::Str:       return static_cast<std::uint64_t>(f.s.size());
-    case Type::UIntArray: return static_cast<std::uint64_t>(f.arr.size() * sizeof(uint64_t));
-    case Type::Record:    return fields_blob_size_(f.rec);
+    case Type::UInt:
+        return 8;
+    case Type::Str:
+        return static_cast<std::uint64_t>(f.s.size());
+    case Type::UIntArray:
+        return static_cast<std::uint64_t>(f.arr.size() * sizeof(uint64_t));
+    case Type::Record:
+        return fields_blob_size_(f.rec);
     }
     return 0;
 }
 
-inline std::uint64_t KeyValueRecord::fields_blob_size_(const std::vector<Field> &fs)
+inline std::uint64_t KeyValueRecord::fields_blob_size_(const std::vector<Field>& fs)
 {
     std::uint64_t sz = 4 + SENTINEL_INLINE_SIZE;
-    for (const auto &f : fs)
+    for (const auto& f : fs)
         sz += 4 + static_cast<std::uint64_t>(f.key.size()) + 1 + 8;
-    for (const auto &f : fs)
+    for (const auto& f : fs)
         sz += 8 + value_size_(f);
     return sz;
 }
 
-inline void KeyValueRecord::serialize_fields_v2_(const std::vector<Field> &fs,
-                                                 std::uint64_t base_offset,
-                                                 std::string &out)
+inline void KeyValueRecord::serialize_fields_v2_(const std::vector<Field>& fs,
+                                                 std::uint64_t base_offset, std::string& out)
 {
     // 字段表大小与取值无关，可先算出；数据块按字段顺序紧随其后连续排布
     std::uint64_t table = 4 + SENTINEL_INLINE_SIZE;
-    for (const auto &f : fs)
+    for (const auto& f : fs)
         table += 4 + static_cast<std::uint64_t>(f.key.size()) + 1 + 8;
 
     // ── 字段表（哨兵 + 字段头，头内 addr 直接算出）────────────────
@@ -362,7 +359,7 @@ inline void KeyValueRecord::serialize_fields_v2_(const std::vector<Field> &fs,
     std::uint64_t cursor = base_offset + table;
     std::vector<std::uint64_t> addrs;
     addrs.reserve(fs.size());
-    for (const auto &f : fs)
+    for (const auto& f : fs)
     {
         detail::append_u32(out, static_cast<uint32_t>(f.key.size()));
         out.append(f.key);
@@ -376,7 +373,7 @@ inline void KeyValueRecord::serialize_fields_v2_(const std::vector<Field> &fs,
     cursor = base_offset + table;
     for (std::size_t i = 0; i < fs.size(); ++i)
     {
-        const Field &f = fs[i];
+        const Field& f = fs[i];
         switch (f.type)
         {
         case Type::UInt:
@@ -388,8 +385,7 @@ inline void KeyValueRecord::serialize_fields_v2_(const std::vector<Field> &fs,
             out.append(f.s);
             break;
         case Type::UIntArray:
-            detail::append_u64(out,
-                static_cast<std::uint64_t>(f.arr.size() * sizeof(uint64_t)));
+            detail::append_u64(out, static_cast<std::uint64_t>(f.arr.size() * sizeof(uint64_t)));
             for (auto v : f.arr)
                 detail::append_u64(out, v);
             break;
@@ -419,9 +415,8 @@ inline std::string KeyValueRecord::serialize_v2(std::uint64_t base_offset) const
 namespace detail
 {
 // v1 布局单字段解码：value 已取出，按类型填 Field；未知类型返回 false（跳过）
-inline bool kv_decode_value_v1(KeyValueRecord::Type type, std::string_view value,
-                               std::uint64_t &u, std::string &s,
-                               std::vector<std::uint64_t> &arr)
+inline bool kv_decode_value_v1(KeyValueRecord::Type type, std::string_view value, std::uint64_t& u,
+                               std::string& s, std::vector<std::uint64_t>& arr)
 {
     switch (type)
     {
@@ -455,11 +450,16 @@ inline bool kv_decode_value_v1(KeyValueRecord::Type type, std::string_view value
 }  // namespace detail
 
 inline Result<std::vector<KeyValueRecord::Field>>
-KeyValueRecord::parse_fields_v2_(const ReadAt &read, std::uint64_t offset,
+KeyValueRecord::parse_fields_v2_(const ReadAt& read, std::uint64_t offset,
                                  std::uint32_t total_count)
 {
     // 哨兵已按 v1 消费；余下字段按 v2 布局读取（字段头 → 数据块两阶段）
-    struct Head { std::string key; Type type; std::uint64_t addr; };
+    struct Head
+    {
+        std::string key;
+        Type type;
+        std::uint64_t addr;
+    };
     detail::KvCursor c{&read, offset};
     std::vector<Head> heads;
     heads.reserve(total_count > 0 ? total_count - 1 : 0);
@@ -476,18 +476,18 @@ KeyValueRecord::parse_fields_v2_(const ReadAt &read, std::uint64_t offset,
 
     std::vector<Field> fields;
     std::uint64_t expect = blocks_begin;
-    for (const auto &h : heads)
+    for (const auto& h : heads)
     {
         if (h.addr != expect)
-            NN_FAIL("KeyValueRecord::parse: 字段 '" + h.key
-                + "' 数据块地址不连续（整体搬迁的 kvrec 字节地址已失效）");
+            NN_FAIL("KeyValueRecord::parse: 字段 '" + h.key +
+                    "' 数据块地址不连续（整体搬迁的 kvrec 字节地址已失效）");
         detail::KvCursor bc{&read, h.addr};
         NN_TRY(value_len, bc.take_u64());
         expect = h.addr + 8 + *value_len;
 
         // 未知类型：按长度跳过（向前兼容），不报错
-        if (h.type != Type::UInt && h.type != Type::Str
-            && h.type != Type::UIntArray && h.type != Type::Record)
+        if (h.type != Type::UInt && h.type != Type::Str && h.type != Type::UIntArray &&
+            h.type != Type::Record)
             continue;
 
         Field f;
@@ -510,8 +510,7 @@ KeyValueRecord::parse_fields_v2_(const ReadAt &read, std::uint64_t offset,
     return fields;
 }
 
-inline Result<KeyValueRecord> KeyValueRecord::parse_at(const ReadAt &read,
-                                                       std::uint64_t offset)
+inline Result<KeyValueRecord> KeyValueRecord::parse_at(const ReadAt& read, std::uint64_t offset)
 {
     detail::KvCursor c{&read, offset};
     KeyValueRecord rec;
@@ -535,8 +534,8 @@ inline Result<KeyValueRecord> KeyValueRecord::parse_at(const ReadAt &read,
         if (!detail::take_u64(sv, version))
             NN_FAIL("KeyValueRecord::parse: kvrec 版本哨兵值长度错误");
         if (version != KVREC_VERSION_V2)
-            NN_FAIL("KeyValueRecord::parse: 不支持的 kvrec 版本 "
-                + std::to_string(version) + "（当前支持 v2）");
+            NN_FAIL("KeyValueRecord::parse: 不支持的 kvrec 版本 " + std::to_string(version) +
+                    "（当前支持 v2）");
         NN_TRY(fields, parse_fields_v2_(read, c.pos, *count));
         rec.fields_ = std::move(*fields);
         rec.rebuild_index_();
@@ -549,16 +548,15 @@ inline Result<KeyValueRecord> KeyValueRecord::parse_at(const ReadAt &read,
         f.key = std::move(*key0);
         f.type = static_cast<Type>(*type0);
         std::string_view sv = *value0;
-        const bool unknown_v1_type = (f.type != Type::UInt && f.type != Type::Str
-                                      && f.type != Type::UIntArray);
+        const bool unknown_v1_type =
+            (f.type != Type::UInt && f.type != Type::Str && f.type != Type::UIntArray);
         if (unknown_v1_type)
         {
             // 未知类型：按长度安全跳过（向前兼容），不报错
         }
         else if (!detail::kv_decode_value_v1(f.type, sv, f.u, f.s, f.arr))
             NN_FAIL("KeyValueRecord::parse: 字段 '" + f.key + "' 值长度错误");
-        else
-            rec.fields_.push_back(std::move(f));
+        else rec.fields_.push_back(std::move(f));
     }
     for (std::uint32_t i = 1; i < *count; ++i)
     {
@@ -570,8 +568,7 @@ inline Result<KeyValueRecord> KeyValueRecord::parse_at(const ReadAt &read,
 
         const Type type = static_cast<Type>(*t);
         // 未知类型：按长度跳过（向前兼容），不报错
-        if (type != Type::UInt && type != Type::Str && type != Type::UIntArray)
-            continue;
+        if (type != Type::UInt && type != Type::Str && type != Type::UIntArray) continue;
 
         Field f;
         f.key = std::move(*key);
@@ -586,36 +583,44 @@ inline Result<KeyValueRecord> KeyValueRecord::parse_at(const ReadAt &read,
 }
 
 inline Result<KeyValueRecord> KeyValueRecord::parse(std::string_view bytes)
-{
-    return parse_at(kvrec_memory_source(bytes), 0);
-}
+{ return parse_at(kvrec_memory_source(bytes), 0); }
 
-inline bool KeyValueRecord::has(const std::string &key) const
-{
-    return key_index_.contains(key);
-}
+inline bool KeyValueRecord::has(const std::string& key) const
+{ return key_index_.contains(key); }
 
-inline bool KeyValueRecord::get(const std::string &key, uint64_t &out) const
+inline bool KeyValueRecord::get(const std::string& key, uint64_t& out) const
 {
-    if (const Field *f = find_field_(key, Type::UInt)) { out = f->u; return true; }
+    if (const Field* f = find_field_(key, Type::UInt))
+    {
+        out = f->u;
+        return true;
+    }
     return false;
 }
 
-inline bool KeyValueRecord::get(const std::string &key, std::string &out) const
+inline bool KeyValueRecord::get(const std::string& key, std::string& out) const
 {
-    if (const Field *f = find_field_(key, Type::Str)) { out = f->s; return true; }
+    if (const Field* f = find_field_(key, Type::Str))
+    {
+        out = f->s;
+        return true;
+    }
     return false;
 }
 
-inline bool KeyValueRecord::get(const std::string &key, std::vector<uint64_t> &out) const
+inline bool KeyValueRecord::get(const std::string& key, std::vector<uint64_t>& out) const
 {
-    if (const Field *f = find_field_(key, Type::UIntArray)) { out = f->arr; return true; }
+    if (const Field* f = find_field_(key, Type::UIntArray))
+    {
+        out = f->arr;
+        return true;
+    }
     return false;
 }
 
-inline bool KeyValueRecord::get(const std::string &key, KeyValueRecord &out) const
+inline bool KeyValueRecord::get(const std::string& key, KeyValueRecord& out) const
 {
-    if (const Field *f = find_field_(key, Type::Record))
+    if (const Field* f = find_field_(key, Type::Record))
     {
         KeyValueRecord sub;
         sub.fields_ = f->rec;

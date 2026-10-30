@@ -19,15 +19,14 @@ namespace
 
 int g_failures = 0;
 
-void expect(bool ok, const char *name)
+void expect(bool ok, const char* name)
 {
     if (!ok)
     {
         ++g_failures;
         std::printf("  [FAIL] %s\n", name);
     }
-    else
-        std::printf("  [ ok ] %s\n", name);
+    else std::printf("  [ ok ] %s\n", name);
 }
 
 using nn::KeyValueRecord;
@@ -51,8 +50,8 @@ void test_v1_roundtrip()
     std::vector<std::uint64_t> arr;
     expect(parsed_r->get("answer", u) && u == 42, "v1 UInt 逐位还原");
     expect(parsed_r->get("name", s) && s == "hello 世界", "v1 Str 逐位还原");
-    expect(parsed_r->get("arr", arr) && arr.size() == 4
-        && arr[3] == 0xFFFFFFFFFFFFFFFFull, "v1 UIntArray 逐位还原");
+    expect(parsed_r->get("arr", arr) && arr.size() == 4 && arr[3] == 0xFFFFFFFFFFFFFFFFull,
+           "v1 UIntArray 逐位还原");
     expect(parsed_r->serialize() == bytes, "v1 serialize 字节稳定");
 
     // 空记录：field_count = 0，按 v1 处理
@@ -134,8 +133,8 @@ void test_v2_roundtrip()
     {
         KeyValueRecord sub;
         std::vector<std::uint64_t> arr;
-        expect(p8_r->get("sub", sub) && sub.get("mid_arr", arr)
-               && arr.size() == 2 && arr[1] == 20, "v2 base=8 嵌套可读");
+        expect(p8_r->get("sub", sub) && sub.get("mid_arr", arr) && arr.size() == 2 && arr[1] == 20,
+               "v2 base=8 嵌套可读");
         KeyValueRecord child;
         std::uint64_t u = 0;
         expect(sub.get("child", child) && child.get("leaf_u", u) && u == 9,
@@ -194,8 +193,7 @@ void test_v2_relocation_rejected()
     // 搬迁：去掉 8 字节基址后当作独立记录解析 → 地址不连续/越界，必须报错
     auto moved_r = KeyValueRecord::parse(at8);
     expect(!moved_r, "整体搬迁的 v2 字节被拒绝");
-    if (!moved_r)
-        std::printf("         （错误信息: %s）\n", moved_r.error().message.c_str());
+    if (!moved_r) std::printf("         （错误信息: %s）\n", moved_r.error().message.c_str());
 
     // 原地（base=8 且按文件解析）依然成功——排除"解析器本身坏了"的误报
     const std::string file = std::string("NNVCxxxx") + at8;
